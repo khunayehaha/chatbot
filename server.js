@@ -76,10 +76,19 @@ async function handleEvent(event) {
       console.log('Data saved to Google Sheets:', processedData);
     }
     
-    // Reply to user (optional)
+    // Get user profile for display name
+    let displayName = 'คุณ';
+    try {
+      const profile = await client.getProfile(event.source.userId);
+      displayName = profile.displayName || 'คุณ';
+    } catch (error) {
+      console.log('Error getting user profile:', error);
+    }
+    
+    // Reply to user with confirmation message
     const replyMessage = {
       type: 'text',
-      text: 'ได้รับข้อความของคุณแล้วครับ จะทำการบันทึกข้อมูลลงระบบ'
+      text: `บันทึกข้อมูลคดีที่${displayName}อัพเดทลงไฟล์ข้อมูลเรียบร้อยแล้วค่ะ`
     };
     
     return client.replyMessage(event.replyToken, replyMessage);
