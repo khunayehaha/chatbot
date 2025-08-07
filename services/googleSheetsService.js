@@ -61,6 +61,45 @@ async function saveToGoogleSheets(data) {
     
     console.log('Saving data to Google Sheets:', rowData);
     
+    // ตรวจสอบว่ามี header หรือไม่
+    try {
+      const headerResponse = await sheets.spreadsheets.values.get({
+        spreadsheetId: spreadsheetId,
+        range: 'A1:L1'
+      });
+      
+      // ถ้าไม่มี header ให้เพิ่ม header
+      if (!headerResponse.data.values || headerResponse.data.values.length === 0) {
+        const headers = [
+          'Timestamp',
+          'User ID', 
+          'Group ID',
+          'Original Message',
+          'Court',
+          'Debtor',
+          'Case Number', 
+          'Status',
+          'Amount',
+          'Date',
+          'Keywords',
+          'Confidence'
+        ];
+        
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: spreadsheetId,
+          range: 'A1:L1',
+          valueInputOption: 'USER_ENTERED',
+          resource: {
+            values: [headers]
+          }
+        });
+        
+        console.log('Added headers to Google Sheets');
+      }
+    } catch (error) {
+      console.log('Error checking/adding headers:', error);
+    }
+    
     // บันทึกข้อมูลลง Google Sheets
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId: spreadsheetId,
