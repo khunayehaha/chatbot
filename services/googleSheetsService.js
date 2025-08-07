@@ -37,10 +37,10 @@ function createGoogleSheetsClient() {
 async function saveToGoogleSheets(data) {
   try {
     const sheets = createGoogleSheetsClient();
-    const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+    const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
     
     if (!spreadsheetId) {
-      throw new Error('GOOGLE_SHEET_ID ไม่ได้ถูกตั้งค่า');
+      throw new Error('GOOGLE_SHEETS_SPREADSHEET_ID ไม่ได้ถูกตั้งค่า');
     }
     
     // เตรียมข้อมูลสำหรับบันทึก
@@ -124,7 +124,7 @@ async function createNewSpreadsheet(title = 'LINE Bot Data') {
 async function setupSheetHeaders() {
   try {
     const sheets = createGoogleSheetsClient();
-    const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+    const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
     
     const headers = [
       'Timestamp',
