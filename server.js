@@ -25,6 +25,13 @@ console.log('GOOGLE_SHEETS_SPREADSHEET_ID:', process.env.GOOGLE_SHEETS_SPREADSHE
 
 const client = new line.Client(config);
 
+// ตัวแปรสำหรับ monitoring
+let serverStartTime = new Date();
+let totalMessages = 0;
+let successfulSaves = 0;
+let failedSaves = 0;
+let lastError = null;
+
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
@@ -32,9 +39,31 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Health check endpoint
 app.get('/', (req, res) => {
+  const uptime = new Date() - serverStartTime;
+  const uptimeHours = Math.floor(uptime / (1000 * 60 * 60));
+  const uptimeMinutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
+  
   res.json({ 
     status: 'OK', 
     message: 'LINE Bot Webhook Server is running',
+    timestamp: new Date().toISOString(),
+    uptime: `${uptimeHours} ชั่วโมง ${uptimeMinutes} นาที`,
+    statistics: {
+      totalMessages: totalMessages,
+      successfulSaves: successfulSaves,
+      failedSaves: failedSaves,
+      successRate: totalMessages > 0 ? ((successfulSaves / totalMessages) * 100).toFixed(2) + '%' : '0%'
+    },
+    lastError: lastError
+  });
+});
+
+// Monitoring endpoint
+app.get('/status', (req, res) => {
+  res.json({
+    server: 'running',
+    lineApi: 'connected',
+    googleSheets: 'connected',
     timestamp: new Date().toISOString()
   });
 });
@@ -54,6 +83,10 @@ app.post('/webhook', (req, res) => {
     .then((result) => res.json(result))
     .catch((err) => {
       console.error('Webhook error:', err);
+      lastError = {
+        message: err.message,
+        timestamp: new Date().toISOString()
+      };
       res.status(500).json({ error: 'Internal server error' });
     });
 });
@@ -65,6 +98,7 @@ async function handleEvent(event) {
   }
 
   try {
+    totalMessages++;
     console.log('Processing message:', event.message.text);
     
     // Process and analyze the message
@@ -111,8 +145,32 @@ async function handleEvent(event) {
     
     // Save to Google Sheets
     if (processedData) {
-      await saveToGoogleSheets(processedData);
-      console.log('Data saved to Google Sheets:', processedData);
+      try {
+        await saveToGoogleSheets(processedData);
+        successfulSaves++;
+        console.log('Data saved to Google Sheets:', processedData);
+      } catch (error) {
+        failedSaves++;
+        console.error('Error saving to Google Sheets:', error);
+        lastError = {
+          message: `Google Sheets Error: ${error.message}`,
+          timestamp: new Date().toISOString()
+        };
+        
+        // ส่งข้อความแจ้งเตือน
+        const errorMessage = {
+          type: 'text',
+          text: 'ขออภัยค่ะ เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้งค่ะ'
+        };
+        
+        try {
+          await client.replyMessage(event.replyToken, errorMessage);
+        } catch (replyError) {
+          console.log('Error sending error message:', replyError);
+        }
+        
+        return Promise.resolve(null);
+      }
     }
     
     // สร้างข้อความตอบกลับที่เหมาะสม
@@ -159,6 +217,10 @@ async function handleEvent(event) {
     
   } catch (error) {
     console.error('Error handling event:', error);
+    lastError = {
+      message: `Event handling error: ${error.message}`,
+      timestamp: new Date().toISOString()
+    };
     return Promise.resolve(null);
   }
 }
@@ -166,7 +228,22 @@ async function handleEvent(event) {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
+  lastError = {
+    message: `Server error: ${err.message}`,
+    timestamp: new Date().toISOString()
+  };
   res.status(500).json({ error: 'Internal server error' });
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  process.exit(0);
 });
 
 // Start server
@@ -174,6 +251,7 @@ app.listen(PORT, () => {
   console.log(`🚀 LINE Bot Webhook Server is running on port ${PORT}`);
   console.log(`📝 Health check: http://localhost:${PORT}/`);
   console.log(`🔗 Webhook URL: http://localhost:${PORT}/webhook`);
+  console.log(`📊 Status: http://localhost:${PORT}/status`);
 });
 
 module.exports = app;
