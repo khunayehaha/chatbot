@@ -3,7 +3,7 @@ services:
     name: line-bot-webhook
     env: node
     buildCommand: npm install
-    startCommand: node server.js
+    startCommand: node src/server.js
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
@@ -11,4 +11,4 @@ services:
       - key: PORT
         value: 10000
     autoDeploy: true
-    rootDir: src
+    rootDir: .
