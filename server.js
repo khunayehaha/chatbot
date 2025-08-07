@@ -40,8 +40,14 @@ app.get('/', (req, res) => {
 });
 
 // LINE Webhook endpoint
-app.post('/webhook', line.middleware(config), (req, res) => {
+app.post('/webhook', (req, res) => {
   console.log('Received webhook:', JSON.stringify(req.body, null, 2));
+  
+  // Basic validation
+  if (!req.body || !req.body.events) {
+    console.log('Invalid webhook data');
+    return res.status(400).json({ error: 'Invalid webhook data' });
+  }
   
   Promise
     .all(req.body.events.map(handleEvent))
