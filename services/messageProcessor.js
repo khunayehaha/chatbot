@@ -10,6 +10,7 @@ const KEYWORDS = {
   STATUS: ['รอ', 'เสร็จสิ้น', 'ยกฟ้อง', 'พิพากษา', 'ชำระแล้ว', 'ค้างชำระ', 'พิพากษาตามยอม', 'สืบพยานฝ่ายเดียว', 'เลื่อนเพื่อทำยอม', 'ทยอยชำระ', 'ชั้นบังคับคดี', 'ยึดทรัพย์', 'งดการขาย', 'ไม่พบทรัพย์'],
   AMOUNT: ['บาท', 'พัน', 'หมื่น', 'แสน', 'ล้าน', '฿', 'จำนวน'],
   DATE: ['วันที่', 'เมื่อ', 'วัน', 'เดือน', 'ปี', 'เวลา'],
+  ACCOUNT: ['เลขที่บัญชี', 'เลขบัญชี', 'บัญชี', 'เลขบัญชี', 'BSF', 'BRR', 'BKK', 'CMI', 'HDY', 'KKN', 'LPT', 'NAN', 'NST', 'PBI', 'PNK', 'PRB', 'RBR', 'SKN', 'SNI', 'SRN', 'TKK', 'UBN', 'UTI'],
   LEGAL_TERMS: ['รายงานคดี', 'รับชำระหนี้', 'ชั้นบังคับคดี', 'ผู้รับผิดชอบคดี', 'หมายบังคับคดี', 'ความแพ่ง', 'สถานะงาน', 'เลขที่บัญชี', 'ปิดบัญชี', 'เจรจา', 'จ่ายชำระ']
 };
 
@@ -96,6 +97,7 @@ async function processMessage(event) {
     status: analysis.status,
     amount: analysis.amount,
     date: analysis.date,
+    accountNumber: analysis.accountNumber,
     keywords: analysis.keywords,
     confidence: analysis.confidence
   };
@@ -141,6 +143,7 @@ function classifyMessage(text) {
   let hasCase = false;
   let hasDebtor = false;
   let hasLegalTerms = false;
+  let hasAccount = false;
   
   for (const keyword of KEYWORDS.COURT) {
     if (lowerText.includes(keyword.toLowerCase())) {
@@ -163,6 +166,14 @@ function classifyMessage(text) {
     }
   }
   
+  // ตรวจสอบเลขที่บัญชี
+  for (const keyword of KEYWORDS.ACCOUNT) {
+    if (lowerText.includes(keyword.toLowerCase())) {
+      legalKeywords++;
+      hasAccount = true;
+    }
+  }
+  
   // ตรวจสอบคำศัพท์ทางกฎหมาย
   for (const keyword of KEYWORDS.LEGAL_TERMS) {
     if (lowerText.includes(keyword.toLowerCase())) {
@@ -182,7 +193,7 @@ function classifyMessage(text) {
   
   // ถ้ามีคำสำคัญอย่างน้อย 1 คำ และมีข้อมูลสำคัญอย่างน้อย 1 ประเภท
   if (legalKeywords > 0) {
-    const importantTypes = [hasCourt, hasCase, hasDebtor, hasLegalTerms].filter(Boolean).length;
+    const importantTypes = [hasCourt, hasCase, hasDebtor, hasLegalTerms, hasAccount].filter(Boolean).length;
     if (importantTypes >= 1) {
       return 'legal_case';
     } else if (legalKeywords >= 2) {
@@ -226,6 +237,7 @@ function isLegalCasePattern(text) {
     /(?:รายงานคดี|รับชำระหนี้|ชั้นบังคับคดี)/, // คำศัพท์ทางกฎหมาย
     /(?:จำเลย|นาย|นาง|นางสาว)\s*[ก-ฮ]+\s*[ก-ฮ]+/, // ชื่อจำเลย
     /(?:เลขที่บัญชี|บัญชี)\s*[0-9]+/, // เลขที่บัญชี
+    /[0-9]+\s*\((?:BSF|BRR|BKK|CMI|HDY|KKN|LPT|NAN|NST|PBI|PNK|PRB|RBR|SKN|SNI|SRN|TKK|UBN|UTI)\)/, // เลขบัญชีพร้อมรหัสธนาคาร
     /(?:สถานะงาน|ผู้รับผิดชอบคดี)/, // สถานะงาน
     /(?:ยึดทรัพย์|งดการขาย|ไม่พบทรัพย์)/, // สถานะทรัพย์
     /(?:พิพากษาตามยอม|สืบพยานฝ่ายเดียว|เลื่อนเพื่อทำยอม)/ // สถานะคดี
@@ -254,6 +266,7 @@ function analyzeText(text) {
     status: null,
     amount: null,
     date: null,
+    accountNumber: null,
     keywords: [],
     confidence: 0,
     legalTerms: [],
@@ -363,6 +376,61 @@ function analyzeText(text) {
       result.date = matches.join(', ');
       confidence += 10;
       break;
+    }
+  }
+  
+  // ค้นหาเลขที่บัญชี (ใหม่)
+  const accountPatterns = [
+    /(?:เลขที่บัญชี|เลขบัญชี|บัญชี)\s*([0-9]{4,5})/gi,
+    /([0-9]{4,5})\s*\((?:BSF|BRR|BKK|CMI|HDY|KKN|LPT|NAN|NST|PBI|PNK|PRB|RBR|SKN|SNI|SRN|TKK|UBN|UTI)\)/gi,
+    /(?:BSF|BRR|BKK|CMI|HDY|KKN|LPT|NAN|NST|PBI|PNK|PRB|RBR|SKN|SNI|SRN|TKK|UBN|UTI)\s*([0-9]{4,5})/gi
+  ];
+  
+  for (const pattern of accountPatterns) {
+    const matches = text.match(pattern);
+    if (matches) {
+      if (matches.length > 1) {
+        // มีหลายเลขบัญชี
+        result.accountNumber = matches.map(match => {
+          const accountMatch = match.match(/([0-9]{4,5})/);
+          const bankMatch = match.match(/(BSF|BRR|BKK|CMI|HDY|KKN|LPT|NAN|NST|PBI|PNK|PRB|RBR|SKN|SNI|SRN|TKK|UBN|UTI)/);
+          if (accountMatch && bankMatch) {
+            return `${accountMatch[1]}(${bankMatch[1]})`;
+          }
+          return accountMatch ? accountMatch[1] : match;
+        }).join(', ');
+        confidence += 20;
+      } else {
+        const accountMatch = matches[0].match(/([0-9]{4,5})/);
+        const bankMatch = matches[0].match(/(BSF|BRR|BKK|CMI|HDY|KKN|LPT|NAN|NST|PBI|PNK|PRB|RBR|SKN|SNI|SRN|TKK|UBN|UTI)/);
+        if (accountMatch) {
+          if (bankMatch) {
+            result.accountNumber = `${accountMatch[1]}(${bankMatch[1]})`;
+          } else {
+            result.accountNumber = accountMatch[1];
+          }
+          confidence += 15;
+        }
+      }
+      result.keywords.push('เลขที่บัญชี');
+      break;
+    }
+  }
+  
+  // ค้นหาเลขที่บัญชีแบบพิเศษ (รูปแบบ 781522(BSF))
+  if (!result.accountNumber) {
+    const accountWithBankPattern = /([0-9]{4,5})\s*\((BSF|BRR|BKK|CMI|HDY|KKN|LPT|NAN|NST|PBI|PNK|PRB|RBR|SKN|SNI|SRN|TKK|UBN|UTI)\)/g;
+    let accountMatch;
+    const accounts = [];
+    
+    while ((accountMatch = accountWithBankPattern.exec(text)) !== null) {
+      accounts.push(`${accountMatch[1]}(${accountMatch[2]})`);
+    }
+    
+    if (accounts.length > 0) {
+      result.accountNumber = accounts.join(', ');
+      confidence += 15;
+      result.keywords.push('เลขที่บัญชี');
     }
   }
   

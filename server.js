@@ -188,6 +188,9 @@ async function handleEvent(event) {
     if (processedData.debtor) {
       replyText += `👤 ลูกหนี้: ${processedData.debtor}\n`;
     }
+    if (processedData.accountNumber) {
+      replyText += `🏦 เลขที่บัญชี: ${processedData.accountNumber}\n`;
+    }
     if (processedData.amount) {
       replyText += `💰 จำนวนเงิน: ${processedData.amount}\n`;
     }
