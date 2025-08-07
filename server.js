@@ -76,22 +76,18 @@ async function handleEvent(event) {
       console.log('Data saved to Google Sheets:', processedData);
     }
     
-    // Get user profile for display name
-    let displayName = 'คุณ';
-    try {
-      const profile = await client.getProfile(event.source.userId);
-      displayName = profile.displayName || 'คุณ';
-    } catch (error) {
-      console.log('Error getting user profile:', error);
-    }
-    
     // Reply to user with confirmation message
     const replyMessage = {
       type: 'text',
-      text: `บันทึกข้อมูลคดีที่${displayName}อัพเดทลงไฟล์ข้อมูลเรียบร้อยแล้วค่ะ`
+      text: 'บันทึกข้อมูลคดีที่คุณอัพเดทลงไฟล์ข้อมูลเรียบร้อยแล้วค่ะ'
     };
     
-    return client.replyMessage(event.replyToken, replyMessage);
+    try {
+      return await client.replyMessage(event.replyToken, replyMessage);
+    } catch (error) {
+      console.log('Error sending reply message:', error);
+      return Promise.resolve(null);
+    }
     
   } catch (error) {
     console.error('Error handling event:', error);
