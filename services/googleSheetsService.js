@@ -54,10 +54,9 @@ async function saveToGoogleSheets(data) {
       second: '2-digit'
     });
     
-    // เตรียมข้อมูลสำหรับบันทึก (ลบข้อมูลที่ไม่จำเป็น)
+    // เตรียมข้อมูลสำหรับบันทึก (ลบ User ID)
     const rowData = [
       thaiTime, // เวลาปัจจุบันประเทศไทย
-      data.userId || '',
       data.originalMessage,
       data.court || '',
       data.debtor || '',
@@ -80,7 +79,6 @@ async function saveToGoogleSheets(data) {
       if (!headerResponse.data.values || headerResponse.data.values.length === 0) {
         const headers = [
           'วันที่และเวลา',
-          'User ID', 
           'ข้อความต้นฉบับ',
           'ศาล',
           'ลูกหนี้',
@@ -92,7 +90,7 @@ async function saveToGoogleSheets(data) {
         
         await sheets.spreadsheets.values.update({
           spreadsheetId: spreadsheetId,
-          range: 'A1:I1',
+          range: 'A1:H1',
           valueInputOption: 'USER_ENTERED',
           resource: {
             values: [headers]

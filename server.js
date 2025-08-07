@@ -70,16 +70,84 @@ async function handleEvent(event) {
     // Process and analyze the message
     const processedData = await processMessage(event);
     
+    // ตรวจสอบว่าควรประมวลผลหรือไม่
+    if (!processedData.shouldProcess) {
+      // ส่งข้อความตอบกลับตามประเภท
+      let replyMessage;
+      
+      switch (processedData.messageType) {
+        case 'command':
+          replyMessage = {
+            type: 'text',
+            text: 'สวัสดีค่ะ! ฉันเป็นบอทสำหรับบันทึกข้อมูลการรับชำระหนี้\n\nวิธีการใช้งาน:\n- ส่งข้อความเกี่ยวกับคดี เช่น "คดี 123/2566 ศาลจังหวัดกรุงเทพฯ"\n- ข้อมูลจะถูกบันทึกลงไฟล์อัตโนมัติ'
+          };
+          break;
+        case 'irrelevant':
+          replyMessage = {
+            type: 'text',
+            text: 'ขออภัยค่ะ ฉันเป็นบอทสำหรับบันทึกข้อมูลคดีเท่านั้น\nกรุณาส่งข้อความเกี่ยวกับคดีหรือการชำระหนี้ค่ะ'
+          };
+          break;
+        case 'low_confidence':
+          replyMessage = {
+            type: 'text',
+            text: `ข้อมูลที่ส่งมาไม่ชัดเจนพอ (ความน่าเชื่อถือ: ${processedData.confidence}%)\n\nกรุณาระบุข้อมูลให้ชัดเจนขึ้น เช่น:\n- ชื่อศาล\n- หมายเลขคดี\n- ชื่อลูกหนี้\n- จำนวนเงิน\n- สถานะคดี`
+          };
+          break;
+        default:
+          replyMessage = {
+            type: 'text',
+            text: 'ไม่สามารถประมวลผลข้อความนี้ได้ กรุณาลองใหม่อีกครั้งค่ะ'
+          };
+      }
+      
+      try {
+        return await client.replyMessage(event.replyToken, replyMessage);
+      } catch (error) {
+        console.log('Error sending reply message:', error);
+        return Promise.resolve(null);
+      }
+    }
+    
     // Save to Google Sheets
     if (processedData) {
       await saveToGoogleSheets(processedData);
       console.log('Data saved to Google Sheets:', processedData);
     }
     
-    // Reply to user with confirmation message
+    // สร้างข้อความตอบกลับที่เหมาะสม
+    let replyText = 'บันทึกข้อมูลคดีเรียบร้อยแล้วค่ะ\n\n';
+    
+    if (processedData.court) {
+      replyText += `🏛️ ศาล: ${processedData.court}\n`;
+    }
+    if (processedData.caseNumber) {
+      replyText += `📋 หมายเลขคดี: ${processedData.caseNumber}\n`;
+    }
+    if (processedData.multipleCases && processedData.multipleCases.length > 0) {
+      replyText += `📋 หมายเลขคดี: ${processedData.multipleCases.join(', ')}\n`;
+    }
+    if (processedData.debtor) {
+      replyText += `👤 ลูกหนี้: ${processedData.debtor}\n`;
+    }
+    if (processedData.amount) {
+      replyText += `💰 จำนวนเงิน: ${processedData.amount}\n`;
+    }
+    if (processedData.status) {
+      replyText += `📊 สถานะ: ${processedData.status}\n`;
+    }
+    if (processedData.date) {
+      replyText += `📅 วันที่: ${processedData.date}\n`;
+    }
+    if (processedData.legalTerms && processedData.legalTerms.length > 0) {
+      replyText += `⚖️ คำศัพท์ทางกฎหมาย: ${processedData.legalTerms.join(', ')}\n`;
+    }
+    
+    replyText += `\nความน่าเชื่อถือ: ${processedData.confidence}%`;
+    
     const replyMessage = {
       type: 'text',
-      text: 'บันทึกข้อมูลคดีที่คุณอัพเดทลงไฟล์ข้อมูลเรียบร้อยแล้วค่ะ'
+      text: replyText
     };
     
     try {
