@@ -43,20 +43,28 @@ async function saveToGoogleSheets(data) {
       throw new Error('GOOGLE_SHEETS_SPREADSHEET_ID ไม่ได้ถูกตั้งค่า');
     }
     
-    // เตรียมข้อมูลสำหรับบันทึก
+    // แปลงเวลาเป็นประเทศไทย
+    const thaiTime = new Date().toLocaleString('th-TH', {
+      timeZone: 'Asia/Bangkok',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+    
+    // เตรียมข้อมูลสำหรับบันทึก (ลบข้อมูลที่ไม่จำเป็น)
     const rowData = [
-      data.timestamp,
+      thaiTime, // เวลาปัจจุบันประเทศไทย
       data.userId || '',
-      data.groupId || '',
       data.originalMessage,
       data.court || '',
       data.debtor || '',
       data.caseNumber || '',
       data.status || '',
       data.amount || '',
-      data.date || '',
-      data.keywords.join(', ') || '',
-      data.confidence || 0
+      data.keywords.join(', ') || ''
     ];
     
     console.log('Saving data to Google Sheets:', rowData);
@@ -71,23 +79,20 @@ async function saveToGoogleSheets(data) {
       // ถ้าไม่มี header ให้เพิ่ม header
       if (!headerResponse.data.values || headerResponse.data.values.length === 0) {
         const headers = [
-          'Timestamp',
+          'วันที่และเวลา',
           'User ID', 
-          'Group ID',
-          'Original Message',
-          'Court',
-          'Debtor',
-          'Case Number', 
-          'Status',
-          'Amount',
-          'Date',
-          'Keywords',
-          'Confidence'
+          'ข้อความต้นฉบับ',
+          'ศาล',
+          'ลูกหนี้',
+          'หมายเลขคดี', 
+          'สถานะ',
+          'จำนวนเงิน',
+          'คำสำคัญ'
         ];
         
         await sheets.spreadsheets.values.update({
           spreadsheetId: spreadsheetId,
-          range: 'A1:L1',
+          range: 'A1:I1',
           valueInputOption: 'USER_ENTERED',
           resource: {
             values: [headers]
@@ -103,7 +108,7 @@ async function saveToGoogleSheets(data) {
     // บันทึกข้อมูลลง Google Sheets
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId: spreadsheetId,
-      range: 'A:A', // ใช้คอลัมน์ A เท่านั้น
+      range: 'A:I', // ใช้คอลัมน์ A ถึง I
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       resource: {
