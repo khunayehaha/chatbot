@@ -103,7 +103,7 @@ async function saveToGoogleSheets(data) {
     // บันทึกข้อมูลลง Google Sheets
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId: spreadsheetId,
-      range: 'A:L', // ใช้ range แบบง่าย
+      range: 'A:A', // ใช้คอลัมน์ A เท่านั้น
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       resource: {
