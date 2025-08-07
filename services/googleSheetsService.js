@@ -43,20 +43,23 @@ async function saveToGoogleSheets(data) {
       throw new Error('GOOGLE_SHEETS_SPREADSHEET_ID ไม่ได้ถูกตั้งค่า');
     }
     
-    // แปลงเวลาเป็นประเทศไทย
-    const thaiTime = new Date().toLocaleString('th-TH', {
-      timeZone: 'Asia/Bangkok',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    // แปลงเวลาเป็นประเทศไทยในรูปแบบที่อ่านได้
+    const now = new Date();
+    const thaiTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // UTC+7
+    
+    // จัดรูปแบบเวลาเป็น dd/mm/yyyy hh:mm:ss
+    const day = String(thaiTime.getUTCDate()).padStart(2, '0');
+    const month = String(thaiTime.getUTCMonth() + 1).padStart(2, '0');
+    const year = thaiTime.getUTCFullYear();
+    const hours = String(thaiTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(thaiTime.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(thaiTime.getUTCSeconds()).padStart(2, '0');
+    
+    const formattedThaiTime = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
     
     // เตรียมข้อมูลสำหรับบันทึก (ลบ User ID)
     const rowData = [
-      thaiTime, // เวลาปัจจุบันประเทศไทย
+      formattedThaiTime, // เวลาปัจจุบันประเทศไทยในรูปแบบข้อความ
       data.originalMessage,
       data.court || '',
       data.debtor || '',
@@ -107,7 +110,7 @@ async function saveToGoogleSheets(data) {
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId: spreadsheetId,
       range: 'A:I', // ใช้คอลัมน์ A ถึง I
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW', // ใช้ RAW เพื่อไม่ให้ Google Sheets แปลงข้อมูล
       insertDataOption: 'INSERT_ROWS',
       resource: {
         values: [rowData]
