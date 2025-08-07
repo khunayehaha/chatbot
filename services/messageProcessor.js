@@ -42,7 +42,9 @@ async function processMessage(event) {
   const message = event.message.text;
   const userId = event.source.userId;
   const groupId = event.source.groupId;
-  const timestamp = new Date().toISOString();
+  
+  // สร้าง timestamp เวลาประเทศไทย
+  const thaiTimestamp = getThaiTimestamp();
   
   console.log(`Processing message from user ${userId}: ${message}`);
   
@@ -53,7 +55,7 @@ async function processMessage(event) {
   // ถ้าเป็นข้อความที่ไม่เกี่ยวข้อง ให้ข้ามการประมวลผล
   if (messageType === 'irrelevant' || messageType === 'command') {
     return {
-      timestamp: timestamp,
+      timestamp: thaiTimestamp,
       userId: userId,
       groupId: groupId,
       originalMessage: message,
@@ -69,7 +71,7 @@ async function processMessage(event) {
   // ตรวจสอบความน่าเชื่อถือ
   if (analysis.confidence < 30) {
     return {
-      timestamp: timestamp,
+      timestamp: thaiTimestamp,
       userId: userId,
       groupId: groupId,
       originalMessage: message,
@@ -82,7 +84,7 @@ async function processMessage(event) {
   
   // สร้างข้อมูลสำหรับบันทึก
   const processedData = {
-    timestamp: timestamp,
+    timestamp: thaiTimestamp,
     userId: userId,
     groupId: groupId,
     originalMessage: message,
@@ -100,6 +102,16 @@ async function processMessage(event) {
   
   console.log('Processed data:', processedData);
   return processedData;
+}
+
+/**
+ * สร้าง timestamp เวลาประเทศไทย
+ * @returns {string} timestamp ในรูปแบบ ISO string เวลาประเทศไทย
+ */
+function getThaiTimestamp() {
+  const now = new Date();
+  const thaiTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // UTC+7
+  return thaiTime.toISOString();
 }
 
 /**
@@ -414,5 +426,6 @@ module.exports = {
   processMessage,
   analyzeText,
   classifyMessage,
-  isLegalCasePattern
+  isLegalCasePattern,
+  getThaiTimestamp
 };
