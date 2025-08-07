@@ -3,7 +3,7 @@ services:
     name: line-bot-webhook
     env: node
     buildCommand: npm install
-    startCommand: ./start.sh
+    startCommand: npm start
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
