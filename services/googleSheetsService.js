@@ -64,7 +64,7 @@ async function saveToGoogleSheets(data) {
     // บันทึกข้อมูลลง Google Sheets
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId: spreadsheetId,
-      range: 'Sheet1!A:L', // 12 columns
+      range: 'A:L', // ใช้ range แบบง่าย
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       resource: {
@@ -161,7 +161,7 @@ async function setupSheetHeaders() {
 /**
  * อ่านข้อมูลจาก Google Sheets
  */
-async function readFromGoogleSheets(range = 'Sheet1!A:L') {
+async function readFromGoogleSheets(range = 'A:L') {
   try {
     const sheets = createGoogleSheetsClient();
     const spreadsheetId = process.env.GOOGLE_SHEET_ID;
