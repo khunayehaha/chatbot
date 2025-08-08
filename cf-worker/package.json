@@ -1,0 +1,23 @@
+{
+	"name": "line-bot-webhook",
+	"version": "1.0.0",
+	"description": "LINE Bot Webhook Server for Cloudflare Workers",
+	"private": true,
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"start": "wrangler dev",
+		"test": "vitest",
+		"cf-typegen": "wrangler types",
+		"setup-secrets": "echo 'Run these commands to set up secrets:' && echo 'wrangler secret put LINE_CHANNEL_SECRET' && echo 'wrangler secret put LINE_CHANNEL_ACCESS_TOKEN' && echo 'wrangler secret put GOOGLE_SHEETS_API_KEY' && echo 'wrangler secret put GOOGLE_SHEETS_SPREADSHEET_ID'"
+	},
+	"keywords": ["line-bot", "webhook", "cloudflare-workers", "legal", "case-management"],
+	"author": "",
+	"license": "ISC",
+	"devDependencies": {
+		"@cloudflare/vitest-pool-workers": "^0.8.19",
+		"typescript": "^5.5.2",
+		"vitest": "~3.2.0",
+		"wrangler": "^4.28.1"
+	}
+}
